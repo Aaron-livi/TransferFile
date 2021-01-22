@@ -32,40 +32,35 @@
 #include <iostream> 
 #include <fstream> 
 #include<vector>
-#include<io.h>
-
 #include "zmq.h"
 #include "zmq_utils.h"            //Zeromq 函数的导入
 #pragma comment(lib,"libzmq.lib")
-
+#include <filesystem>
 using namespace std;
-
-void getFiles(string path, vector<string>& files)
+using namespace std::filesystem;
+using namespace std;
+int getFiles(string strFolder,vector<string>& vstrFile)
 {
-	//文件句柄  
-	long long hFile = 0;//这个地方需要特别注意，win10用户必须用long long 类型，win7可以用long类型
-	//文件信息  
-	struct _finddata_t fileinfo;
-	string p;
-	if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1)
+
+	filesystem::path p(strFolder);
+	if (exists(p))
 	{
-		do
+		if (is_regular_file(p))
 		{
-			//如果是目录,迭代之  
-			//如果不是,加入列表  
-			if ((fileinfo.attrib &  _A_SUBDIR))
+			return 1;
+		}
+		else if (is_directory(p))
+		{
+		fs:directory_iterator dir(p);
+			for (auto& f : dir)
 			{
-				if (strcmp(fileinfo.name, ".") != 0 && strcmp(fileinfo.name, "..") != 0)
-					getFiles(p.assign(path).append("\\").append(fileinfo.name), files);
+				vstrFile.emplace_back(f.path().string());
 			}
-			else
-			{
-				files.push_back(p.assign(path).append("\\").append(fileinfo.name));
-			}
-		} while (_findnext(hFile, &fileinfo) == 0);
-		_findclose(hFile);
+		}
 	}
+	return 1;
 }
+
 int main (int argc, char *argv [])
 {
 	char *path=nullptr;
@@ -140,7 +135,7 @@ int main (int argc, char *argv [])
 		zmq_msg_t recv_msg1;
 		zmq_msg_init(&recv_msg1);
 		zmq_msg_recv(&recv_msg1,z_socket,0); 
-		printf("收到Server端回答:\t");
+		printf("Server:\t");
 		std::cout<<(char*)zmq_msg_data(&recv_msg1)<<std::endl;
 		zmq_msg_close(&recv_msg1);	
 

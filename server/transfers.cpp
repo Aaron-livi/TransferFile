@@ -28,16 +28,16 @@
 
 ********************************************************************************************************/
 #include <string>
-#include <io.h>
-#include <direct.h>
-
 #include <iostream>
 #include <fstream>
 #include "zmq.h"
 #include "zmq_utils.h"            //Zeromq 函数的导入
 #pragma comment(lib,"libzmq.lib")
 
+
+#include<filesystem>
 using namespace std;
+using namespace std::filesystem;
 int main()
 { 
     void* context=zmq_init(1);    //指定zmq 处理I/0事件的thread pool 为1
@@ -50,25 +50,22 @@ int main()
         zmq_msg_t recv_msg;
         zmq_msg_init(&recv_msg);
         int size =zmq_msg_recv(&recv_msg,z_socket,0);          //0表示非阻塞
-		char *str = (char*)malloc(size + 1);
-		memset(str,0,size+1);
-		memcpy(str, zmq_msg_data(&recv_msg), size);
+		char *chPath = (char*)malloc(size + 1);
+		memset(chPath,0,size+1);
+		memcpy(chPath, zmq_msg_data(&recv_msg), size);
 		zmq_msg_close(&recv_msg);
-		char  * tag=nullptr;
-		for (tag = str; *tag; tag++)
+
+		string dirPath(chPath);
+		int nCount = 0;
+		dirPath.find("\\")== dirPath.npos ? nCount = dirPath.find("/"): nCount = dirPath.find("\\");
+		if (nCount != dirPath.npos)
 		{
-			if (*tag == '\\')
-			{
-				char buf[1000]={0};
-				char path[1000]={0};
-				strcpy(buf, str);
-				buf[strlen(str) - strlen(tag) + 1] = NULL;
-				strcpy(path, buf);
-				_mkdir(path);			
-			}
+			dirPath = dirPath.substr(0, nCount);
 		}
-		string filepath(str);
-		free (str);
+		path strPath(dirPath);
+		create_directories(strPath);
+		string filepath(chPath);
+		free (chPath);
 		std::cout<<filepath<<std::endl;    
 		
 		//发送完成
